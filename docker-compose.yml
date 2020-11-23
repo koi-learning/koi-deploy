@@ -1,0 +1,55 @@
+version: '3.7'
+services:
+  db:
+    container_name: koi-db-serv
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: koiserver
+      MYSQL_USER: koi
+      MYSQL_PASSWORD: koikoi
+
+  # the koi-api-service
+  # it handles all REST-requests and accesses the MySQL-server locally
+  koi-api:
+    container_name: koi-api-serv
+    
+    # start MySQL when starting this service
+    depends_on:
+      - db
+    
+    # check out the latest stable sources and build the image locally
+    build:
+      context: https://github.com/koi-learning/koi-api.git#docker
+    
+    # set the configuration to use the local MySQL-instance
+    environment:
+      KOI_CONFIG: "./config/docker.py"
+    
+    # as MySQL will need some time to start, restart the service while 
+    restart: unless-stopped
+  
+  # the worker service
+  # this will run a single instance of the worker-process
+  koi-worker:
+    container_name: koi-worker
+    
+    # start the koi-api when starting this service
+    depends_on:
+      - koi-api
+    
+    # check out the latest stable sources and build the image locally
+    build:
+      context: https://github.com/koi-learning/koi-core.git#docker
+    
+    # overwrite the entrypoint with the deployment specific url
+    entrypoint: ["koi-worker.py", "-s=http://koi-api:8080", "-u=admin", "-p=admin"]
+    restart: unless-stopped
+
+#  koi-pwa:
+#    depends_on:
+#      - koi-api
+#    image: nginx
+#    container_name: koi-web-serv
+#    ports:
+#      - "8080:80"
