@@ -46,10 +46,18 @@ services:
     entrypoint: ["koi-worker.py", "-s=http://koi-api:8080", "-u=admin", "-p=admin"]
     restart: unless-stopped
 
-#  koi-pwa:
-#    depends_on:
-#      - koi-api
-#    image: nginx
-#    container_name: koi-web-serv
-#    ports:
-#      - "8080:80"
+  # the webserver serving the pwa and forwarding the api
+  koi-pwa:
+    container_name: koi-web-serv
+    
+    # start the koi-api when starting this service
+    depends_on:
+      - koi-api
+    
+    # use the included dockerfile
+    build:
+      context: .\koi-pwa
+    ports:
+      - "80:80"
+    restart: unless-stopped
+
