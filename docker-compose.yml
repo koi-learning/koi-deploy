@@ -8,6 +8,7 @@ services:
       MYSQL_DATABASE: koiserver
       MYSQL_USER: koi
       MYSQL_PASSWORD: koikoi
+    restart: unless-stopped
 
   # the koi-api-service
   # it handles all REST-requests and accesses the MySQL-server locally
