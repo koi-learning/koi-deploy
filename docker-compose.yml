@@ -25,7 +25,7 @@ services:
     
     # check out the latest stable sources and build the image locally
     build:
-      context: https://github.com/koi-learning/koi-api.git#docker
+      context: https://github.com/koi-learning/koi-api.git#main
     
     # set the configuration to use the local MySQL-instance
     environment:
