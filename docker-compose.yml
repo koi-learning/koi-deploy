@@ -8,6 +8,10 @@ services:
       MYSQL_DATABASE: koiserver
       MYSQL_USER: koi
       MYSQL_PASSWORD: koikoi
+    networks:
+      - shared-net
+    volumes:
+      - mysql-data:/var/lib/mysql
     restart: unless-stopped
 
   # the koi-api-service
@@ -27,6 +31,14 @@ services:
     environment:
       KOI_CONFIG: "./config/docker.py"
     
+    # wait-for-it by Giles Hall! see: https://github.com/vishnubob/wait-for-it
+    entrypoint: /wait-for-it.sh --host=db --port=3306 --strict --timeout=0 -- waitress-serve --port 8080 --call koi_api:create_app
+    networks:
+      - shared-net
+
+    volumes:
+      - sample-data:/temp
+
     # as MySQL will need some time to start, restart the service while 
     restart: unless-stopped
   
@@ -41,10 +53,13 @@ services:
     
     # check out the latest stable sources and build the image locally
     build:
-      context: https://github.com/koi-learning/koi-core.git#docker
+      context: https://github.com/koi-learning/koi-core.git#main
     
+    networks:
+      - shared-net
+
     # overwrite the entrypoint with the deployment specific url
-    entrypoint: ["koi-worker.py", "-s=http://koi-api:8080", "-u=admin", "-p=admin"]
+    entrypoint: /wait-for-it.sh --host=koi-api --port=8080 --strict --timeout=0 -- koi-worker.py -s=http://koi-api:8080 -u=admin -p=admin
     restart: unless-stopped
 
   # the webserver serving the pwa and forwarding the api
@@ -60,5 +75,14 @@ services:
       context: .\koi-pwa
     ports:
       - "80:80"
+    
+    networks:
+      - shared-net
     restart: unless-stopped
 
+volumes:
+  sample-data:
+  mysql-data:
+
+networks:
+  shared-net:
