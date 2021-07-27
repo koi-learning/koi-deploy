@@ -57,9 +57,16 @@ services:
     
     networks:
       - shared-net
+     
+    volumes:
+      - core-logs:/logs
+    
+    # disable logs
+    environment:
+      TF_CPP_MIN_LOG_LEVEL: "3"
 
     # overwrite the entrypoint with the deployment specific url
-    entrypoint: /wait-for-it.sh --host=koi-api --port=8080 --strict --timeout=0 -- koi-worker.py -s=http://koi-api:8080 -u=admin -p=admin
+    entrypoint: /wait-for-it.sh --host=koi-api --port=8080 --strict --timeout=0 -- koi-worker.py -s=http://koi-api:8080 -u=admin -p=admin -l=INFO --logfile=/logs/core.log
     restart: unless-stopped
 
   # the webserver serving the pwa and forwarding the api
@@ -83,6 +90,7 @@ services:
 volumes:
   sample-data:
   mysql-data:
+  core-logs:
 
 networks:
   shared-net:
