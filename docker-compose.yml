@@ -54,6 +54,7 @@ services:
     # check out the latest stable sources and build the image locally
     build:
       context: https://github.com/koi-learning/koi-core.git#main
+      dockerfile: cpu.Dockerfile
     
     networks:
       - shared-net
