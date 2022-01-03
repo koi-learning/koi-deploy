@@ -41,7 +41,7 @@ services:
 
     # as MySQL will need some time to start, restart the service while 
     restart: unless-stopped
-  
+
   # the worker service
   # this will run a single instance of the worker-process
   koi-worker:
@@ -61,7 +61,9 @@ services:
      
     volumes:
       - core-logs:/logs
-    
+      - tf-logs-2D:/tf-logs/2D
+      - tf-logs-3D:/tf-logs/3D
+
     # disable logs
     environment:
       TF_CPP_MIN_LOG_LEVEL: "3"
@@ -69,6 +71,22 @@ services:
     # overwrite the entrypoint with the deployment specific url
     entrypoint: /wait-for-it.sh --host=koi-api --port=8080 --strict --timeout=0 -- koi-worker.py -s=http://koi-api:8080 -u=admin -p=admin -l=INFO --logfile=/logs/core.log
     restart: unless-stopped
+
+  koi-tensorflow:
+    image: tensorflow/tensorflow:latest  # Does this ship with cuda10.0 installed or do I need a separate container for it?
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - tf-logs-2D:/tf-logs/2D
+      - tf-logs-3D:/tf-logs/3D
+
+    networks:
+      - shared-net
+    
+    ports:
+      - "6006:6006"
+
+    entrypoint: tensorboard --logdir tf-logs/ --bind_all
 
   # the webserver serving the pwa and forwarding the api
   koi-pwa:
@@ -92,6 +110,8 @@ volumes:
   sample-data:
   mysql-data:
   core-logs:
+  tf-logs-2D:
+  tf-logs-3D:
 
 networks:
   shared-net:
