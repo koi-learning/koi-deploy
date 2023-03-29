@@ -69,7 +69,7 @@ services:
       TF_CPP_MIN_LOG_LEVEL: "3"
 
     # overwrite the entrypoint with the deployment specific url
-    entrypoint: /wait-for-it.sh --host=koi-api --port=8080 --strict --timeout=0 -- koi-worker.py -s=http://koi-api:8080 -u=admin -p=admin -l=INFO --logfile=/logs/core.log
+    entrypoint: /wait-for-it.sh --host=koi-api --port=8080 --strict --timeout=0 -- koi-worker -s=http://koi-api:8080 -u=admin -p=admin -l=INFO --logfile=/logs/core.log
     restart: unless-stopped
 
   koi-tensorflow:
