@@ -17,27 +17,22 @@ services:
   # the koi-api-service
   # it handles all REST-requests and accesses the MySQL-server locally
   koi-api:
-    container_name: koi-api-serv
+    image: ghcr.io/koi-learning/koi-api:0.4.5
     
     # start MySQL when starting this service
     depends_on:
       - db
     
-    # check out the latest stable sources and build the image locally
-    build:
-      context: https://github.com/koi-learning/koi-api.git#main
-    
     # set the configuration to use the local MySQL-instance
     environment:
-      KOI_CONFIG: "./config/docker.py"
-    
-    # wait-for-it by Giles Hall! see: https://github.com/vishnubob/wait-for-it
-    entrypoint: /wait-for-it.sh --host=db --port=3306 --strict --timeout=0 -- waitress-serve --port 8080 --call koi_api:create_app
+      KOI_SQLALCHEMY_DATABSE_URI: mysql+pymysql://koi:koikoi@db/koiserver
+      KOI_FILEPERSISTENCE_BASE_URI: /apifiles
+
     networks:
       - shared-net
 
     volumes:
-      - sample-data:/temp
+      - sample-data:/apifiles
 
     # as MySQL will need some time to start, restart the service while 
     restart: unless-stopped
@@ -45,60 +40,33 @@ services:
   # the worker service
   # this will run a single instance of the worker-process
   koi-worker:
-    container_name: koi-worker
+    image: ghcr.io/koi-learning/koi-core-tf:0.4.3
     
     # start the koi-api when starting this service
     depends_on:
       - koi-api
-    
-    # check out the latest stable sources and build the image locally
-    build:
-      context: https://github.com/koi-learning/koi-core.git#main
-      dockerfile: cpu.Dockerfile
-    
+
     networks:
       - shared-net
-     
-    volumes:
-      - core-logs:/logs
-      - tf-logs-2D:/tf-logs/2D
-      - tf-logs-3D:/tf-logs/3D
 
     # disable logs
     environment:
       TF_CPP_MIN_LOG_LEVEL: "3"
 
-    # overwrite the entrypoint with the deployment specific url
-    entrypoint: /wait-for-it.sh --host=koi-api --port=8080 --strict --timeout=0 -- koi-worker -s=http://koi-api:8080 -u=admin -p=admin -l=INFO --logfile=/logs/core.log
+    command: -s=http://koi-api:8080 -u=admin -p=admin -l=INFO
     restart: unless-stopped
-
-  koi-tensorflow:
-    image: tensorflow/tensorflow:latest  # Does this ship with cuda10.0 installed or do I need a separate container for it?
-    restart: unless-stopped
-    privileged: true
-    volumes:
-      - tf-logs-2D:/tf-logs/2D
-      - tf-logs-3D:/tf-logs/3D
-
-    networks:
-      - shared-net
-    
-    ports:
-      - "6006:6006"
-
-    entrypoint: tensorboard --logdir tf-logs/ --bind_all
 
   # the webserver serving the pwa and forwarding the api
   koi-pwa:
-    container_name: koi-web-serv
+    image: ghcr.io/koi-learning/koi-pwa:1.3.0
     
     # start the koi-api when starting this service
     depends_on:
       - koi-api
     
-    # use the included dockerfile
-    build:
-      context: .\koi-pwa
+    environment:
+      API_URL: http://koi-api:8080
+    
     ports:
       - "80:80"
     
@@ -109,9 +77,6 @@ services:
 volumes:
   sample-data:
   mysql-data:
-  core-logs:
-  tf-logs-2D:
-  tf-logs-3D:
 
 networks:
   shared-net:
